@@ -61,12 +61,12 @@ class EmailProcess extends Job implements SelfHandling, ShouldQueue
     /**
      * This method is called by laravel when the job fails on a exception.
      */
-    protected function failed()
+    public function failed()
     {
         Log::error(
             get_class($this).': '.
-            'Unexpected exception was raised from the framework. This useally indicates an error within the '.
-            'framework code. A full strace can be found in the logs and should be reported to the developers'
+            'Unexpected exception was raised from the framework. This usually indicates an error within the '.
+            'framework code. A full trace can be found in the logs and should be reported to the developers'
         );
 
         $this->exception();
@@ -113,6 +113,18 @@ class EmailProcess extends Job implements SelfHandling, ShouldQueue
             return;
         }
 
+        // Ignore email from our own notification address used in bouncing methods to prevent mail loops
+        if (preg_match('/'.Config::get('main.notifications.from_address').'/', $parsedMail->getHeader('Resent-From'))) {
+            Log::warning(
+                get_class($this).': '.
+                'Loop prevention: Ignoring email from self '.Config::get('main.notifications.from_address')
+            );
+
+            $this->exception();
+
+            return;
+        }
+
         // Start with detecting valid ARF e-mail
         $attachments = $parsedMail->getAttachments();
         $arfMail = [];
@@ -132,8 +144,8 @@ class EmailProcess extends Job implements SelfHandling, ShouldQueue
         }
 
         /*
-         * Sometimes the mime header does not set the main message correctly. This is ment as a fallback and will
-         * use the original content body (which is basicly the same mime element). But only fallback if we actually
+         * Sometimes the mime header does not set the main message correctly. This is meant as a fallback and will
+         * use the original content body (which is basically the same mime element). But only fallback if we actually
          * have a RFC822 message with a feedback report.
          */
         if (empty($arfMail['message']) && isset($arfMail['report']) && isset($arfMail['evidence'])) {
@@ -194,11 +206,17 @@ class EmailProcess extends Job implements SelfHandling, ShouldQueue
 
         /*
          * build evidence model, but wait with saving it
+         * but first check if it doesnt exists already (queue retry)
          **/
-        $evidence = new Evidence();
-        $evidence->filename = $this->filename;
-        $evidence->sender = $parsedMail->getHeader('from');
-        $evidence->subject = $parsedMail->getHeader('subject');
+        $evidenceExists = Evidence::where('filename', '=', $this->filename);
+        if ($evidenceExists->count() === 1) {
+            $evidence = $evidenceExists->first();
+        } else {
+            $evidence = new Evidence();
+            $evidence->filename = $this->filename;
+            $evidence->sender = $parsedMail->getHeader('from');
+            $evidence->subject = $parsedMail->getHeader('subject');
+        }
 
         /*
          * Call IncidentsProcess to validate, store evidence and save incidents
@@ -241,8 +259,8 @@ class EmailProcess extends Job implements SelfHandling, ShouldQueue
         // and this Config::get('main.emailparser.fallback_mail')
         Log::error(
             get_class($this).': '.
-            'Email processor ending with errors. The received e-mail will be deleted from '.
-            'archive and bounced to the admin for investigation'
+            'Email processor ending with errors. The received e-mail '.
+            'will be bounced to the admin for investigation'
         );
 
         $fileContents = null;
@@ -250,14 +268,15 @@ class EmailProcess extends Job implements SelfHandling, ShouldQueue
             $fileContents = Storage::get($this->filename);
         }
 
-        AlertAdmin::send(
-            'AbuseIO was not able to process an incoming message. This message is attached to this email.',
-            [
-                'failed_message.eml' => $fileContents,
-            ]
-        );
-
-        // Delete the evidence file as we are not using it.
-        Storage::delete($this->filename);
+        if (Config::get('main.emailparser.use_bounce_method')) {
+            AlertAdmin::bounce($fileContents);
+        } else {
+            AlertAdmin::send(
+                'AbuseIO was not able to process an incoming message. This message is attached to this email.',
+                [
+                    'failed_message.eml' => $fileContents,
+                ]
+            );
+        }
     }
 }

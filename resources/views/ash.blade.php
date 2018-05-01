@@ -5,11 +5,11 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ trans('ash.title') }} - {{ trans('ash.ticket') }} {{ $ticket->id }}</title>
-    <link href="{{ asset('/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('/css/flag-icon-min.css') }}" rel="stylesheet">
-    <link href="{{ asset('/css/custom.css') }}" rel="stylesheet">
-    <script src="{{ asset('/js/jquery.min.js') }}"></script>
-    <script src="{{ asset('/js/bootstrap.min.js') }}"></script>
+    <link href="{{ ashAsset('/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ ashAsset('/css/flag-icon-min.css') }}" rel="stylesheet">
+    <link href="{{ ashAsset('/css/custom.css') }}" rel="stylesheet">
+    <script src="{{ ashAsset('/js/jquery.min.js') }}"></script>
+    <script src="{{ ashAsset('/js/bootstrap.min.js') }}"></script>
 </head>
 <body class="ash">
     <div class="container">
@@ -119,7 +119,7 @@
                         </thead>
                         <tbody>
 
-                        @foreach ($ticket->events as $event)
+                        @foreach ($ticket->events('desc')->get() as $event)
 
                             <tr>
                                 <td>{{ $event->seen }}</td>
@@ -165,21 +165,22 @@
             <div id="resolved" class="tab-pane fade">
                 @if (config('main.notes.enabled') == true && $ticket->status_id != 2)
                     <p>{{ trans('ash.communication.header') }}</p>
-                    {!! Form::model(['method' => 'put']) !!}
-                    <div class="form-group">
-                        {!! Form::label('text', trans('ash.communication.reply').':') !!}
-                        {!! Form::textarea('text', null, ['size' => '30x5', 'placeholder' => trans('ash.communication.placeholder'), 'class' => 'form-control']) !!}
-                    </div>
+                    <form method="POST" accept-charset="UTF-8">
+                        {!! Form::token() !!}
+                        <div class="form-group">
+                            {!! Form::label('text', trans('ash.communication.reply').':') !!}
+                            {!! Form::textarea('text', null, ['size' => '30x5', 'placeholder' => trans('ash.communication.placeholder'), 'class' => 'form-control']) !!}
+                        </div>
 
-                    <div class="form-group">
-                        {!! Form::label('enabled', trans('misc.status').':', ['class' => 'control-label']) !!}
-                        {!! Form::select('changeStatus', $allowedChanges, $ticket->cust_status_id, ['class' => 'form-control']) !!}
-                    </div>
+                        <div class="form-group">
+                            {!! Form::label('enabled', trans('misc.status').':', ['class' => 'control-label']) !!}
+                            {!! Form::select('changeStatus', $allowedChanges, $ticket->cust_status_id, ['class' => 'form-control']) !!}
+                        </div>
 
-                    <div class="form-group">
-                        {!! Form::submit(trans('ash.communication.submit'), ['class'=>'btn btn-success']) !!}
-                    </div>
-                    {!! Form::close() !!}
+                        <div class="form-group">
+                            {!! Form::submit(trans('ash.communication.submit'), ['class'=>'btn btn-success']) !!}
+                        </div>
+                    </form>
 
                     <h4>{{ trans('ash.communication.previousCommunication') }}</h4>
                     @if ( !$ticket->notes->count() )
@@ -207,8 +208,6 @@
                     <p>{{ trans('ash.communication.closed') }}</p>
                 @endif
             </div>
-
-
         </div>
     </div>
 </body>

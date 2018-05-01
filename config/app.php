@@ -3,7 +3,7 @@
 return [
 
     'name'    => 'AbuseIO',
-    'version' => '4.0.1',
+    'version' => '4.1.0',
 
     /*
     |--------------------------------------------------------------------------
@@ -43,7 +43,7 @@ return [
     |
     */
 
-    'url' => 'http://localhost',
+    'url' => env('APP_URL', 'http://localhost'),
 
     /*
     |--------------------------------------------------------------------------
@@ -67,8 +67,10 @@ return [
     | about setting your own format.
     */
 
-    'date_format' => 'd-m-Y',
-    'time_format' => 'H:i:s P',
+    // Implement ISO 8601 usage
+    'date_format' => 'c',
+    // or use this for more human readable:
+    // 'date_format' => 'd-m-Y H:i:s P',
 
     /*
     |--------------------------------------------------------------------------
@@ -87,6 +89,7 @@ return [
     'locales' => [
         'en' => ['English', 'gb'],
         'nl' => ['Nederlands', 'nl'],
+        'gr' => ['Ελληνικά', 'gr'],
     ],
 
     /*
@@ -183,7 +186,7 @@ return [
         'Illuminate\Session\SessionServiceProvider',
         'Illuminate\Translation\TranslationServiceProvider',
         'Illuminate\Validation\ValidationServiceProvider',
-        'Illuminate\View\ViewServiceProvider',
+        'Wpb\String_Blade_Compiler\ViewServiceProvider',
         'Collective\Html\HtmlServiceProvider',
 
         /*
@@ -192,11 +195,13 @@ return [
         'AbuseIO\Providers\AppServiceProvider',
         'AbuseIO\Providers\BusServiceProvider',
         'AbuseIO\Providers\ConfigServiceProvider',
-        'AbuseIO\Providers\EventServiceProvider',
-        'AbuseIO\Providers\RouteServiceProvider',
-        'AbuseIO\Providers\ValidationsServiceProvider',
+        'AbuseIO\Providers\ContactServiceProvider',
         'AbuseIO\Providers\HelperServiceProvider',
+        'AbuseIO\Providers\RouteServiceProvider',
+        'AbuseIO\Providers\SystemAdminManagerProvider',
+        'AbuseIO\Providers\ValidationsServiceProvider',
         'Chumper\Zipper\ZipperServiceProvider',
+        'Sorskod\Larasponse\LarasponseServiceProvider',
         'yajra\Datatables\DatatablesServiceProvider',
 
         /*
